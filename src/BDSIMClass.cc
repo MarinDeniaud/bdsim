@@ -247,6 +247,9 @@ int BDSIM::Initialise()
   
   // Muon splitting - optional - should be done *after* biasing to work with it - TBC it's before...
   BDS::BuildMuonBiasing(physList);
+
+  // Final State Biasing
+  BDS::BuildFinalStateBiasing(physList, parser->GetFinalStateBiasing());
   
   BDS::RegisterSamplerPhysics(parallelWorldPhysics, physList);
   auto biasPhysics = BDS::BuildAndAttachBiasWrapper(parser->GetBiasing());
