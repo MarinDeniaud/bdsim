@@ -24,6 +24,7 @@ along with BDSIM.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "parser/fastlist.h"
 #include "parser/physicsbiasing.h"
+#include "parser/finalstatebiasing.h"
 
 #include <set>
 #include <string>
@@ -115,6 +116,9 @@ namespace BDS
 
   /// Build muon splitting biasing and wrap the various processes in the physics list.
   void BuildMuonBiasing(G4VModularPhysicsList* physicsList);
+
+  /// Build final state splitting biasing and wrap the various processes in the physics list.
+  void BuildFinalStateBiasing(G4VModularPhysicsList* physicsList, const GMAD::FastList<GMAD::FinalStateBiasing>& biases);
 
 #if G4VERSION_NUMBER > 1039
   /// Build the physics required for channelling to work correctly.

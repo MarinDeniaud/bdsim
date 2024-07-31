@@ -96,7 +96,7 @@ along with BDSIM.  If not, see <http://www.gnu.org/licenses/>.
 %token <ival> SHIELD DEGRADER GAP CRYSTALCOL WIRESCANNER
 %token <ival> VKICKER HKICKER KICKER TKICKER THINRMATRIX PARALLELTRANSPORTER
 %token <ival> RMATRIX UNDULATOR USERCOMPONENT DUMP CT TARGET RFX RFY MUONCOOLER LASERWIRE
-%token ALL ATOM MATERIAL PERIOD XSECBIAS REGION PLACEMENT NEWCOLOUR SAMPLERPLACEMENT LASER
+%token ALL ATOM MATERIAL PERIOD XSECBIAS FSBIAS REGION PLACEMENT NEWCOLOUR SAMPLERPLACEMENT LASER
 %token SCORER SCORERMESH BLM MODULATOR
 %token CRYSTAL FIELD CAVITYMODEL QUERY TUNNEL APERTURE COOLINGCHANNEL
 %token BEAM OPTION PRINT RANGE STOP USE SAMPLE CSAMPLE
@@ -348,6 +348,14 @@ decl : VARIABLE ':' component_with_params
              Parser::Instance()->Add<PhysicsBiasing,FastList<PhysicsBiasing>>(true,"xsecbias");
          }
      }
+     | VARIABLE ':' fsbias
+          {
+              if(execute) {
+                  if(ECHO_GRAMMAR) std::cout << "decl -> VARIABLE " << *($1) << " : fsbias" << std::endl;
+                  Parser::Instance()->SetValue<FinalStateBiasing>("name",*($1));
+                  Parser::Instance()->Add<FinalStateBiasing,FastList<FinalStateBiasing>>(true,"fsbias");
+              }
+          }
      | VARIABLE ':' aperture
      {
          if(execute) {
@@ -444,6 +452,7 @@ cavitymodel : CAVITYMODEL ',' cavitymodel_options
 query       : QUERY       ',' query_options
 tunnel      : TUNNEL      ',' tunnel_options
 xsecbias    : XSECBIAS    ',' xsecbias_options
+fsbias      : FSBIAS      ',' fsbias_options
 samplerplacement : SAMPLERPLACEMENT ',' samplerplacement_options
 scorer      : SCORER      ',' scorer_options
 scorermesh  : SCORERMESH  ',' scorermesh_options
@@ -464,6 +473,7 @@ object_noparams : MATERIAL
                 | QUERY
                 | TUNNEL
                 | XSECBIAS
+                | FSBIAS
                 | SAMPLERPLACEMENT
                 | SCORER
                 | SCORERMESH
@@ -1002,6 +1012,14 @@ command : STOP         { if(execute) Parser::Instance()->quit(); }
               Parser::Instance()->Add<PhysicsBiasing,FastList<PhysicsBiasing>>(true, "xsecbias");
             }
         }
+        | FSBIAS ',' fsbias_options // fsbias
+                {
+                  if(execute)
+                    {
+                      if(ECHO_GRAMMAR) std::cout << "command -> FSBIAS" << std::endl;
+                      Parser::Instance()->Add<FinalStateBiasing,FastList<FinalStateBiasing>>(true, "fsbias");
+                    }
+                }
         | APERTURE ',' aperture_options // aperture
         {
           if(execute)
@@ -1256,6 +1274,16 @@ xsecbias_options : paramassign '=' aexpr xsecbias_options_extend
                    { if(execute) Parser::Instance()->SetValue<PhysicsBiasing>(*$1,*$3);}
                  | paramassign '=' vecexpr xsecbias_options_extend
                    { if(execute) Parser::Instance()->SetValue<PhysicsBiasing>(*$1,$3);}
+
+fsbias_options_extend : /* nothing */
+                        | ',' fsbias_options
+
+fsbias_options : paramassign '=' aexpr fsbias_options_extend
+                   { if(execute) Parser::Instance()->SetValue<FinalStateBiasing>(*$1,$3);}
+                 | paramassign '=' string fsbias_options_extend
+                   { if(execute) Parser::Instance()->SetValue<FinalStateBiasing>(*$1,*$3);}
+                 | paramassign '=' vecexpr fsbias_options_extend
+                   { if(execute) Parser::Instance()->SetValue<FinalStateBiasing>(*$1,$3);}
 
 aperture_options_extend : /* nothing */
                          | ',' aperture_options
