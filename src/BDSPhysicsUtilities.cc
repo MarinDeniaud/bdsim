@@ -30,6 +30,7 @@ along with BDSIM.  If not, see <http://www.gnu.org/licenses/>.
 #include "BDSPhysicsCutsAndLimits.hh"
 #include "BDSPhysicsEMDissociation.hh"
 #include "BDSPhysicsMuonSplitting.hh"
+#include "BDSPhysicsFinalStateSplitting.hh"
 #include "BDSPhysicsUtilities.hh"
 #include "BDSUtilities.hh"
 #include "BDSWarning.hh"
@@ -92,6 +93,7 @@ along with BDSIM.  If not, see <http://www.gnu.org/licenses/>.
 #include "parser/beam.h"
 #include "parser/fastlist.h"
 #include "parser/physicsbiasing.h"
+#include "parser/finalstatebiasing.h"
 
 #include <iomanip>
 #include <map>
@@ -526,6 +528,25 @@ void BDS::BuildMuonBiasing(G4VModularPhysicsList* physicsList)
                                                                muonSplittingFactor2, muonSplittingThresholdParentEk2,
                                                                excludeW1P, globals->MuonSplittingExclusionWeight()));
     }
+}
+
+void BDS::BuildFinalStateBiasing(G4VModularPhysicsList* physicsList, const GMAD::FastList<GMAD::FinalStateBiasing>& biases)
+{
+  for(auto fsb : biases) {
+    if (fsb.factor.size() != fsb.processList.size())
+    {throw BDSException(__METHOD_NAME__, "number of factor entries in \"" + fsb.name + "\" doesn't match number of processes");}
+    if (fsb.threshold.size() != fsb.processList.size())
+    {throw BDSException(__METHOD_NAME__, "number of threshold entries in \"" + fsb.name + "\" doesn't match number of processes");}
+
+    for (unsigned int p = 0; p < fsb.processList.size(); ++p) {
+      if (fsb.factor[p] == 1) {continue;}
+      G4cout << "BDSPhysicsFinalStateSplitting -> using final state splitting wrapper -> factor of: " << fsb.factor[p] << G4endl;
+      G4cout << "BDSPhysicsFinalStateSplitting -> minimum parent kinetic energy: " << fsb.threshold[p] / CLHEP::GeV << " GeV" << G4endl;
+      physicsList->RegisterPhysics(new BDSPhysicsFinalStateSplitting(fsb.particle, fsb.processList[p],
+                                                                     fsb.factor[p], fsb.threshold[p],
+                                                                     fsb.productList));
+    }
+  }
 }
 
 void BDS::PrintDefinedParticles()

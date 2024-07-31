@@ -91,10 +91,14 @@ public:
   /// Return biasing list.
   inline const GMAD::FastList<GMAD::PhysicsBiasing>& GetBiasing() const {return xsecbias_list;}
 
+  /// Return final state biasing list.
+  inline const GMAD::FastList<GMAD::FinalStateBiasing>& GetFinalStateBiasing() const {return fsbias_list;}
+
 
   /// @{ Return the parser list of that object.
   inline std::vector<GMAD::Atom> GetAtoms() const {return atom_list.getVector();}
   inline const std::vector<GMAD::PhysicsBiasing> GetBiasingVector() const {return xsecbias_list.getVector();}
+  inline const std::vector<GMAD::FinalStateBiasing> GetFinalSateBiasingVector() const {return fsbias_list.getVector();}
   inline std::vector<GMAD::CavityModel> GetCavityModels() const {return cavitymodel_list.getVector();}
   inline std::vector<GMAD::NewColour> GetColours() const {return colour_list.getVector();}
   inline std::vector<GMAD::Crystal> GetCrystals() const {return crystal_list.getVector();}

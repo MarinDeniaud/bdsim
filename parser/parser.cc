@@ -78,6 +78,7 @@ namespace GMAD {
   template void Parser::Add<Material, FastList<Material> >(bool unique, const std::string& className);
   template void Parser::Add<NewColour, FastList<NewColour> >(bool unique, const std::string& className);
   template void Parser::Add<PhysicsBiasing, FastList<PhysicsBiasing> >(bool unique, const std::string& className);
+  template void Parser::Add<FinalStateBiasing, FastList<FinalStateBiasing> >(bool unique, const std::string& className);
 }
 
 using namespace GMAD;
@@ -410,7 +411,7 @@ void Parser::expand_line(FastList<Element>& target,
 #endif
               // copy properties
               element = (*tmpit);
-              
+
 #ifdef BDSDEBUG 
               std::cout << "done" << std::endl;
 #endif
@@ -484,10 +485,10 @@ void Parser::set_sampler(const std::string& name,
         {// skip LINEs
           if((*it).type == ElementType::_LINE || (*it).type == ElementType::_REV_LINE)
             {continue;}
-          // if type not equal to NONE and elements have to match type 
+          // if type not equal to NONE and elements have to match type
           if (type != ElementType::_NONE && type != (*it).type)
             {continue;}
-          
+
           (*it).setSamplerInfo(samplerType,(*it).name,samplerRadius,particleSetID);
         }
     } 
@@ -515,7 +516,7 @@ void Parser::set_sampler(const std::string& name,
                   if (elementIt == beamline_list.begin())
                     {break;}
                 }
-          
+
               if (elementIt==beamline_list.begin())
                 {
                   std::cout << "parser> SetSampler> WARNING: no element before marker " << name << ", no sampler added" << std::endl;
@@ -740,7 +741,7 @@ void Parser::Overwrite(const std::string& objectName)
   // find object and set values
 
   // possible object types are:
-  // element, atom, colour, crystal, field, material, physicsbiasing, placement,
+  // element, atom, colour, crystal, field, material, physicsbiasing, finalstatebiasing, placement,
   // query, region, tunnel, cavitymodel, samplerplacement, aperture, scorer, scorermesh, blm
   bool extended = false;
   auto element_it = element_list.find(objectName);
@@ -751,13 +752,19 @@ void Parser::Overwrite(const std::string& objectName)
     }
   else
     {
-      auto it = xsecbias_list.find(objectName);
-      if (it != xsecbias_list.end() )
+      auto xsecbias_it = xsecbias_list.find(objectName);
+      if (xsecbias_it != xsecbias_list.end() )
         {
-          ExtendObject(*it);
+          ExtendObject(*xsecbias_it);
           extended = true;
         }
-    }
+          auto fsbias_it = fsbias_list.find(objectName);
+          if (fsbias_it != fsbias_list.end() )
+          {
+              ExtendObject(*fsbias_it);
+              extended = true;
+          }
+        }
   // vectors
   if (!extended) {
     if (      (extended = FindAndExtend<Atom>       (objectName)) ) {}
@@ -872,6 +879,9 @@ bool Parser::TryPrintingObject(const std::string& objectName) const
   auto searchXsecbias = std::find_if(xsecbias_list.begin(), xsecbias_list.end(), [&on](const PhysicsBiasing& obj) {return obj.name == on;});
   if (searchXsecbias != xsecbias_list.end())
     {searchXsecbias->print(); return true;}
+  auto searchFsbias = std::find_if(fsbias_list.begin(), fsbias_list.end(), [&on](const FinalStateBiasing& obj) {return obj.name == on;});
+  if (searchFsbias != fsbias_list.end())
+  {searchFsbias->print(); return true;}
   auto searchPlacement = std::find_if(placement_list.begin(), placement_list.end(), [&on](const Placement& obj) {return obj.name == on;});
   if (searchPlacement != placement_list.end())
     {searchPlacement->print(); return true;}
@@ -994,6 +1004,12 @@ namespace GMAD {
 
   template<>
   FastList<PhysicsBiasing>& Parser::GetList<PhysicsBiasing, FastList<PhysicsBiasing>>(){return xsecbias_list;}
+
+  template<>
+  FinalStateBiasing& Parser::GetGlobal(){return fsbias;}
+
+  template<>
+  FastList<FinalStateBiasing>& Parser::GetList<FinalStateBiasing, FastList<FinalStateBiasing>>(){return fsbias_list;}
 
   template<>
   SamplerPlacement& Parser::GetGlobal(){return samplerplacement;}

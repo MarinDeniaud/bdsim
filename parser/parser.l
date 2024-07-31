@@ -146,6 +146,8 @@ scorermesh { return SCORERMESH; }
 tunnel { return TUNNEL; }
 xsecbias {return XSECBIAS; }
 xsecBias {return XSECBIAS; }
+fsbias {return FSBIAS; }
+fsBias {return FSBIAS; }
 aperture {return APERTURE; }
 blm {return BLM;}
 modulator {return MODULATOR;}

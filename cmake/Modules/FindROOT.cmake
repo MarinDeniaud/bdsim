@@ -165,7 +165,7 @@ string(REPLACE "-stdlib=libc++"  "" ROOT_LIBRARIES ${ROOT_LIBRARIES})
 find_program(ROOTCINT_EXECUTABLE rootcint rootcint6 HINTS ${ROOTSYS}/bin)
 if(NOT ROOTCINT_EXECUTABLE OR
     NOT EXISTS ${ROOTCINT_EXECUTABLE}) # for broken symlinks
-  MESSAGE(FATAL_ERROR "rootcint not found")
+#  MESSAGE(FATAL_ERROR "rootcint not found")
 endif()
 
 

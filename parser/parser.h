@@ -41,6 +41,7 @@ along with BDSIM.  If not, see <http://www.gnu.org/licenses/>.
 #include "options.h"
 #include "parameters.h"
 #include "physicsbiasing.h"
+#include "finalstatebiasing.h"
 #include "placement.h"
 #include "query.h"
 #include "region.h"
@@ -239,6 +240,7 @@ namespace GMAD
     FastList<Region> region_list;
     FastList<Tunnel> tunnel_list;
     FastList<PhysicsBiasing> xsecbias_list;
+    FastList<FinalStateBiasing> fsbias_list;
     FastList<Placement> placement_list;
     FastList<CavityModel> cavitymodel_list;
     FastList<SamplerPlacement> samplerplacement_list;
@@ -271,6 +273,7 @@ namespace GMAD
     Field field;
     Material material;
     PhysicsBiasing xsecbias;
+    FinalStateBiasing fsbias;
     Placement placement;
     Query query;
     Region region;
