@@ -32,6 +32,7 @@ along with BDSIM.  If not, see <http://www.gnu.org/licenses/>.
 #include "BDSBLM.hh"
 #include "BDSBLMRegistry.hh"
 #include "BDSBOptrMultiParticleChangeCrossSection.hh"
+#include "BDSBOptrMultiParticleFinalStateSplitting.hh"
 #include "BDSComponentFactory.hh"
 #include "BDSComponentFactoryUser.hh"
 #include "BDSCurvilinearBuilder.hh"
@@ -1169,7 +1170,86 @@ BDSDetectorConstruction::BuildCrossSectionBias(const std::list<std::string>& bia
   biasSetObjects[biasSetKey] = eg; // cache it
   return eg;
 }
+
+BDSBOptrMultiParticleFinalStateSplitting*
+BDSDetectorConstruction::BuildFinalStateSplitting(const std::list<std::string>& biasList,
+                                                  const std::list<std::string>& defaultBias,
+                                                  const G4String& elementName)
+{
+  // no accelerator components to bias
+  if (biasList.empty() && defaultBias.empty())
+  {return nullptr;}
+
+  std::list<std::string> biasesAll = biasList.empty() ? defaultBias : biasList;
+
+  // build a unique 'key' as the sorted set of bias names
+  std::set<std::string> biasNamesSorted = {biasesAll.begin(), biasesAll.end()};
+  G4String biasSetKey;
+  G4String biasSetPrintOut;
+  for (const auto& n : biasNamesSorted)
+  {
+    biasSetKey += n + "_";
+    biasSetPrintOut += n + " ";
+  }
+  biasSetKey = BDS::StrStrip(biasSetKey, '_', BDS::StringStripType::trailing);
+
+  auto exists = fsBiasSetObjects.find(biasSetKey);
+  if (exists != fsBiasSetObjects.end())
+  {return exists->second;}
+
+  // loop over all physics biasing
+  // TODO - Remove additional couts
+  G4cout << "BDSDetectorConstruction - Creating BDSBOptrMultiParticleFinalStateSplitting object" << G4endl;
+  G4cout << "Bias> Creating unique set of bias objects ( " << biasSetPrintOut << ")" << G4endl;
+  BDSBOptrMultiParticleFinalStateSplitting* eg = new BDSBOptrMultiParticleFinalStateSplitting();
+
+  const auto& biasObjectList = BDSParser::Instance()->GetFinalStateBiasing();
+  for (std::string const & bs : biasesAll)
+  {
+    auto result = biasObjectList.find(bs);
+    if (result == biasObjectList.end())
+    {throw BDSException("Error: bias named \"" + bs + "\" not found for element named \"" + elementName + "\"");}
+    const GMAD::FinalStateBiasing& fsb = *result;
+
+    if(debug)
+    {G4cout << __METHOD_NAME__ << "bias loop : " << bs << " " << fsb.particle << " " << fsb.process << G4endl;}
+
+    eg->AddParticle(fsb.particle);
+
+    // loop through all processes
+    if (fsb.factor.size() != fsb.processList.size())
+    {throw BDSException(__METHOD_NAME__, "number of factor entries in \"" + fsb.name + "\" doesn't match number of processes");}
+    if (fsb.threshold.size() != fsb.processList.size())
+    {throw BDSException(__METHOD_NAME__, "number of threshold entries in \"" + fsb.name + "\" doesn't match number of processes");}
+    for (unsigned int p = 0; p < fsb.processList.size(); ++p)
+    {eg->SetBias(bs, fsb.particle,fsb.processList[p],fsb.factor[p], fsb.threshold[p],fsb.product, fsb.productList);}
+  }
+
+  fsBiasObjects.push_back(eg);
+  fsBiasSetObjects[biasSetKey] = eg; // cache it
+  return eg;
+}
 #endif
+
+std::list<std::string> SelectBiasingType(const std::vector<GMAD::PhysicsBiasing>& BiasingVector,
+                                         const std::list<std::string>& biasNames) {
+  std::list<std::string> allBiasNames;
+  for (const auto& bias : BiasingVector)
+  {allBiasNames.push_back(bias.name);}
+  std::list<std::string> selectedBiasNames;
+  std::set_intersection(biasNames.begin(), biasNames.end(), allBiasNames.begin(), allBiasNames.end(),std::back_inserter(selectedBiasNames));
+  return selectedBiasNames;
+}
+
+std::list<std::string> SelectBiasingType(const std::vector<GMAD::FinalStateBiasing>& BiasingVector,
+                                         const std::list<std::string>& biasNames) {
+  std::list<std::string> allBiasNames;
+  for (const auto& bias : BiasingVector)
+  {allBiasNames.push_back(bias.name);}
+  std::list<std::string> selectedBiasNames;
+  std::set_intersection(biasNames.begin(), biasNames.end(), allBiasNames.begin(), allBiasNames.end(),std::back_inserter(selectedBiasNames));
+  return selectedBiasNames;
+}
 
 void BDSDetectorConstruction::BuildPhysicsBias() 
 {
@@ -1200,6 +1280,10 @@ void BDSDetectorConstruction::BuildPhysicsBias()
       auto biasNamesV = BDS::SplitOnWhiteSpace(biasNamesS);
       std::list<std::string> biasNames = {biasNamesV.begin(), biasNamesV.end()};
       std::list<std::string> emptyDefaultBias;
+
+      // std::list<std::string> xsecBiasNames = SelectBiasingType(BDSParser::Instance()->GetBiasingVector(), biasNames);
+      // std::list<std::string> fsBiasNames = SelectBiasingType(BDSParser::Instance()->GetFinalSateBiasingVector(), biasNames);
+
       auto biasForBLM = BuildCrossSectionBias(biasNames, emptyDefaultBias, blm->GetName());
       for (auto lv : blm->GetAllLogicalVolumes())
         {biasForBLM->AttachTo(lv);}
@@ -1268,7 +1352,13 @@ void BDSDetectorConstruction::BuildPhysicsBias()
       auto materialBiasList = accCom->GetBiasMaterialList();
       if (!materialBiasList.empty() || useDefaultBiasMaterial)
 	{
-	  auto egMaterial = BuildCrossSectionBias(materialBiasList, defaultBiasMaterialList, accName);
+        // TODO - Remove additional couts
+        G4cout << "BDSDetectorConstruction - Before SelectBiasingType function" << G4endl;
+      std::list<std::string> xsecBiasNames = SelectBiasingType(BDSParser::Instance()->GetBiasingVector(), materialBiasList);
+      std::list<std::string> fsBiasNames = SelectBiasingType(BDSParser::Instance()->GetFinalSateBiasingVector(), materialBiasList);
+      G4cout << "BDSDetectorConstruction - Before BuildFinalStateSplitting function" << G4endl;
+      auto egXSMaterial = BuildCrossSectionBias(xsecBiasNames, defaultBiasMaterialList, accName);
+      auto egFSMaterial = BuildFinalStateSplitting(fsBiasNames, defaultBiasMaterialList, accName);
 	  auto allLVs     = accCom->GetAcceleratorMaterialLogicalVolumes();
 	  if (debug)
 	    {G4cout << __METHOD_NAME__ << "# of logical volumes for biasing under 'material': " << allLVs.size() << G4endl;}
@@ -1276,7 +1366,8 @@ void BDSDetectorConstruction::BuildPhysicsBias()
 	    {// BDSAcceleratorComponent automatically removes 'vacuum' volumes from all so we don't need to check
 		  if (debug)
 		    {G4cout << __METHOD_NAME__ << "Biasing 'material' logical volume: " << lv << " " << lv->GetName() << G4endl;}
-		  egMaterial->AttachTo(lv);
+          egXSMaterial->AttachTo(lv);
+          egFSMaterial->AttachTo(lv);
 	    }
 	}
     }
