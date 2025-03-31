@@ -31,11 +31,15 @@ along with BDSIM.  If not, see <http://www.gnu.org/licenses/>.
 #include "G4MuIonisation.hh"
 #include "G4MuonMinus.hh"
 #include "G4MuonPlus.hh"
+#include "G4PAIModel.hh"
+#include "G4PAIPhotModel.hh"
 #include "G4PhysicsListHelper.hh"
 #include "G4PionMinus.hh"
 #include "G4PionPlus.hh"
 #include "G4Positron.hh"
 #include "G4Proton.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4UniversalFluctuation.hh"
 
 
 BDSPhysicsIonisation::BDSPhysicsIonisation():
@@ -65,10 +69,16 @@ void BDSPhysicsIonisation::ConstructProcess()
   if (Activated())
     {return;}
 
+  // energy limits for e+- ionisation models
+  G4double penEnergyLimit = 1*MeV;
+
   G4PhysicsListHelper* ph = G4PhysicsListHelper::GetPhysicsListHelper();
 
   // e+-
   auto eIonisation = new G4eIonisation();
+  G4PAIModel* eIoniPAI = new G4PAIModel();
+  eIoniPAI->SetHighEnergyLimit(penEnergyLimit);
+  eIonisation->AddEmModel(0, eIoniPAI, eIoniPAI);
   G4AutoDelete::Register(eIonisation);
   ph->RegisterProcess(eIonisation, G4Electron::Electron());
   ph->RegisterProcess(eIonisation, G4Positron::Positron());
