@@ -1,0 +1,25 @@
+d1: drift, l=0.5*m, aper1=0.15*m, vacuumMaterial="vacuum";
+d2: drift, l=0.25*m, apertureType="circularvacuum", aper1=0.15*m, vacuumMaterial="G4_AIR", biasMaterial="bias";
+
+! BEAMLINE
+lat: line = (d1, d2, d1);
+use, lat;
+
+! BEAM
+beam, particle="e-",
+      kineticEnergy=15*keV;
+
+! BIASING
+bias: xsecBias, proc="eIoni", xsecfact={1e10}, flag={1}, particle="e-";
+
+! OPTIONS
+option, physicsList                       = "ionisation ftfp_bert",
+        worldMaterial                     = "vacuum",
+        printPhysicsProcesses             = 0,
+        storeTrajectory                   = 1,
+	    storeTrajectorySecondaryParticles = 1,
+	    trajectoryConnect                 = 1,
+	    storeTrajectoryProcesses          = 1,
+	    defaultRangeCut                   = 1e-9*m;
+
+sample, all;
